@@ -13,7 +13,7 @@ import           Data.Text             (Text)
 import qualified Data.Text             as T
 import           Data.Text.Encoding    (decodeUtf8)
 import           GHC.Generics
-import           Servant.Flow.Internal
+import           Servant.Flow.Internal.Core
 import           Servant.Foreign
 
 
