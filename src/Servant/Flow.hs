@@ -6,6 +6,7 @@ module Servant.Flow
     , Flow (..)
     , genericFlowType
     , renderFlowType
+    , generateType
     , FlowObjectKey
 
     -- ** FlowTypeInfo for primative types
@@ -32,15 +33,21 @@ module Servant.Flow
     -- ** Servant HasForeign
     , LangFlow
 
+    , doit
+    , Rec (..), X (..)
+
 ) where
 
 import           Data.Aeson            (Options (..), SumEncoding (..), defaultOptions,
                                         defaultTaggedObject)
 import           Data.Proxy
-import           Data.Text             (Text)
+import           Data.Text             (Text, unpack)
 import           Servant.Flow.CodeGen
 import           Servant.Flow.Internal
 import           Servant.Foreign
+
+import GHC.Generics
+import Data.Foldable
 
 
 data LangFlow
@@ -71,3 +78,35 @@ generateTypeDefinitions apiProxy opts
 
 generateClientFunction :: CodeGenOptions -> Text
 generateClientFunction opts = execCodeGen opts renderClientFunction
+
+
+--genFlowType :: FlowTypeRef -> CodeGen ()
+generateType :: forall a. Flow a => Proxy a -> Text
+generateType _ = execCodeGen defaultCodeGenOptions . genFlowType . toReferenced . flowTypeInfo $ Proxy @a
+
+
+data RR = RR { rint :: Int, rbool :: Bool} deriving (Generic, Flow)
+
+data X
+    = X Int Bool
+    | Y
+        { yb  :: Bool
+        , yb2 :: Bool}
+        deriving (Generic, Flow)
+
+data Rec = Rec
+    { recb :: Bool
+    , recr :: Maybe Rec
+    } deriving (Generic, Flow)
+
+data U = U deriving (Generic, Flow)
+
+doit :: IO ()
+doit = traverse_ (putStrLn . unpack)
+    [ generateType $ Proxy @X
+    , ""
+    , generateType $ Proxy @U
+    , ""
+    --, generateType $ Proxy @Rec
+    , ""
+    ]
