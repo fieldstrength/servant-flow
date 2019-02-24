@@ -50,10 +50,10 @@ default-extensions:
 - MultiWayIf
 - OverloadedStrings
 - ScopedTypeVariables
+- StandaloneDeriving
+- TupleSections
 - TypeApplications
 - TypeOperators
-- TupleSections
-- StandaloneDeriving
 
 ghc-options:
 - -Wall -Werror
