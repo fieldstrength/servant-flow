@@ -92,8 +92,6 @@ instance (Ord k, FlowObjectKey k, Flow a) => Flow (Map k a) where
 
 
 
-
-
 -- | Arbitrary types cannot be object keys but need string representation
 --   "Data.Aeson.ToJSONKey" has more complex functionality than we support.
 class FlowObjectKey a
@@ -110,19 +108,23 @@ class GFlow f where
 data FieldInfo
     = AnonField FlowTypeInfo
     | RecordField String FlowTypeInfo
+    deriving Generic
 
 data RawConstructor = RawConstructor Text [FieldInfo]
+    deriving (Show, Generic)
 
 data FieldError
     = Unexpected [FieldInfo]
-    deriving Show
+    deriving (Show, Generic)
 
 
 data DataConstructor
     = AnonConstructor Text [FlowTypeInfo]
     | RecordConstructor Text [(String, FlowTypeInfo)]
+    deriving Generic
 
 data DatatypeInfo = DatatypeInfo [DataConstructor]
+    deriving Generic
 
 
 instance Show FieldInfo where
@@ -138,6 +140,14 @@ instance Show FieldInfo where
 
 
 
+
+class GFlowConstructorFields f where
+    constructorFields :: f x -> [FieldInfo]
+
+-- Unit constructors
+instance GFlowConstructorFields U1 where
+    constructorFields _ = []
+
 -- Use an instance that already exists
 instance (Flow a, Selector s) => GFlowConstructorFields (S1 s (K1 R a)) where
     constructorFields _ = pure $ if
@@ -146,17 +156,14 @@ instance (Flow a, Selector s) => GFlowConstructorFields (S1 s (K1 R a)) where
         where
             s = selName (undefined :: S1 s (K1 R a) ())
 
-class GFlowConstructorFields f where
-    constructorFields :: f x -> [FieldInfo]
-
-instance GFlowConstructorFields U1 where
-    constructorFields _ = []
-
-instance (GFlowConstructorFields f, GFlowConstructorFields g)
-    => GFlowConstructorFields (f :*: g) where
+instance
+    ( GFlowConstructorFields f
+    , GFlowConstructorFields g
+    ) => GFlowConstructorFields (f :*: g) where
         constructorFields _ =
                constructorFields (undefined :: f ())
             <> constructorFields (undefined :: g ())
+
 
 class GFlowConstructors f where
     constructors :: f x -> [RawConstructor]
@@ -183,6 +190,7 @@ mkDataConstructor :: RawConstructor -> Either FieldError DataConstructor
 mkDataConstructor (RawConstructor name fs) = maybe (Left $ Unexpected fs) Right $
         fmap (RecordConstructor name) (traverse requireRecordField fs)
     <|> fmap (AnonConstructor   name) (traverse requireAnonField fs)
+
 
     where
         requireAnonField :: FieldInfo -> Maybe FlowTypeInfo
